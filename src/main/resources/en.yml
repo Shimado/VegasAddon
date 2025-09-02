@@ -1,0 +1,54 @@
+Drums-settings:
+  title: '         &4➌➌➌  &4&lDRUMS&r &4➌➌➌'
+  icon:
+    title: '&l➌➌➌  DRUMS  ➌➌➌'
+    lore:
+      - '&a• &aSingleplayer.'
+      - '&e• &fYou can knock out different combinations'
+      - '&e• &ffrom the game mode and depending on the combination'
+      - '&e• &fand the material you get your prize!'
+      - ' '
+      - '&fVictory combinations:'
+      - '&7➥ '
+      - '&7➥ '
+      - '&7➥ &5&l➎x➎ &r&eAll of the above - &fprize &6✕100'
+      - '&7➥ &5&l➎x➊ &r&eOne line horizontally not in the center - &fprize &6✕6'
+      - '&7➥ &5&l➎x➊ &r&eOne line horizontally in the center - &fprize &6✕25'
+      - '&7➥ &5&l➊x➎ &r&eOne line vertically - &fprize &6✕10'
+      - '&7➥ &eLine obliquely - &fprize &6✕10'
+      - '&7➥ &eTwo oblique lines - &fprize &6✕50'
+      - ' '
+      - '&fBonus combinations:'
+      - '&7➥ &5&l➋x➋ &r&eOne block - &fprize &6✕3.5'
+      - '&7➥ '
+      - ' '
+      - '&e• &fIf any of these combinations are dragon egg,'
+      - '&e• &fthen the main factor is multiplied &cby 5!'
+  bet:
+    money-bet:
+      title: '&6&lBET AMOUNT'
+      lore:
+        - '&fCurrent: &e%money%&6$'
+        - '&fLeft click: &a+%money_click%$'
+        - '&fLeft click + Shift: &a+%money_click_big%$'
+        - '&fRight click: &c-%money_click%$'
+        - '&fRight click + Shift: &c-%money_click_big%$'
+    spot:
+      title: '&6&lPlace your bet'
+      lore:
+        - '&fYou can place your chips!'
+  lever:
+    inactive:
+      title: '&6&lPlace your bet to spin!'
+      lore: []
+    active:
+      title: '&6&lCLICK TO SPIN'
+      lore: []
+    rolling:
+      title: '&6&lSCROLL IN...'
+      lore: []
+  background:
+    music-button:
+      title-inactive: '&cMUSIC INACTIVE'
+      title-active: '&aMUSIC ACTIVE'
+      lore: []

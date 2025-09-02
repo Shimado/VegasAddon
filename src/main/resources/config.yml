@@ -1,0 +1,266 @@
+Drums-settings:
+  mode-name: 'Drums'
+  permission: 'casino.drums'
+  gui-size: 6
+  icon:
+    material: 'YELLOW_SHULKER_BOX'
+    custom-model-data: 0
+    slot:
+      all-games: 12
+      one-game: 22
+  figures-amount-max: 2
+  combinations:
+    little_cross:
+      types: [
+        [ '10100','01000','10100','00000','00000' ],
+        [ '01010','00100','01010','00000','00000' ],
+        [ '00101','00010','00101','00000','00000' ],
+        [ '00000','10100','01000','10100','00000' ],
+        [ '00000','01010','00100','01010','00000' ],
+        [ '00000','00101','00010','00101','00000' ],
+        [ '00000','00000','10100','01000','10100' ],
+        [ '00000','00000','01010','00100','01010' ],
+        [ '00000','00000','00101','00010','00101' ]
+      ]
+      chance: 2.0
+      multiplier: 2.0
+    2x2:
+      types: [
+        [ '11000','11000','00000','00000','00000' ],
+        [ '01100','01100','00000','00000','00000' ],
+        [ '00110','00110','00000','00000','00000' ],
+        [ '00011','00011','00000','00000','00000' ],
+        [ '00000','11000','11000','00000','00000' ],
+        [ '00000','01100','01100','00000','00000' ],
+        [ '00000','00110','00110','00000','00000' ],
+        [ '00000','00011','00011','00000','00000' ],
+        [ '00000','00000','11000','11000','00000' ],
+        [ '00000','00000','01100','01100','00000' ],
+        [ '00000','00000','00110','00110','00000' ],
+        [ '00000','00000','00011','00011','00000' ],
+        [ '00000','00000','00000','11000','11000' ],
+        [ '00000','00000','00000','01100','01100' ],
+        [ '00000','00000','00000','00110','00110' ],
+        [ '00000','00000','00000','00011','00011' ]
+      ]
+      chance: 2.0
+      multiplier: 2.0
+    3x3:
+      types: [
+        [ '11100','11100','11100','00000','00000' ],
+        [ '01110','01110','01110','00000','00000' ],
+        [ '00111','00111','00111','00000','00000' ],
+        [ '00000','11100','11100','11100','00000' ],
+        [ '00000','01110','01110','01110','00000' ],
+        [ '00000','00111','00111','00111','00000' ],
+        [ '00000','00000','11100','11100','11100' ],
+        [ '00000','00000','01110','01110','01110' ],
+        [ '00000','00000','00111','00111','00111' ]
+      ]
+      chance: 2.0
+      multiplier: 2.0
+    4x4:
+      types: [
+        [ '11110','11110','11110','11110','00000' ],
+        [ '01111','01111','01111','01111','00000' ],
+        [ '00000','11110','11110','11110','11110' ],
+        [ '00000','01111','01111','01111','01111' ]
+      ]
+      chance: 2.0
+      multiplier: 2.0
+    5x5:
+      types: [
+        [ '11111','11111','11111','11111','11111' ]
+      ]
+      chance: 2.0
+      multiplier: 2.0
+    horizontal-line:
+      types: [
+        [ '11111','00000','00000','00000','00000' ],
+        [ '00000','11111','00000','00000','00000' ],
+        [ '00000','00000','00000','11111','00000' ],
+        [ '00000','00000','00000','00000','11111' ]
+      ]
+      chance: 2.0
+      multiplier: 2.0
+    horizontal-line-center:
+      types: [
+        [ '00000','00000','11111','00000','00000' ]
+      ]
+      chance: 2.0
+      multiplier: 2.0
+    vertical-line:
+      types: [
+        [ '10000','10000','10000','10000','10000' ],
+        [ '01000','01000','01000','01000','01000' ],
+        [ '00100','00100','00100','00100','00100' ],
+        [ '00010','00010','00010','00010','00010' ],
+        [ '00001','00001','00001','00001','00001' ]
+      ]
+      chance: 2.0
+      multiplier: 2.0
+    diagonal-line:
+      types: [
+        [ '10000','01000','00100','00010','00001' ],
+        [ '00001','00010','00100','01000','10000' ]
+      ]
+      chance: 2.0
+      multiplier: 2.0
+    cross-line:
+      types: [
+        [ '10001','01010','00100','01010','10001' ]
+      ]
+      chance: 2.0
+      multiplier: 2.0
+  rolling-items:
+    - material: 'GOLDEN_CARROT'
+      custom-model-data: 0
+      chance: 10.0
+      multiplier: 1.0
+    - material: 'APPLE'
+      custom-model-data: 0
+      chance: 10.0
+      multiplier: 1.0
+    - material: 'GOLDEN_APPLE'
+      custom-model-data: 0
+      chance: 10.0
+      multiplier: 1.0
+    - material: 'EMERALD'
+      custom-model-data: 0
+      chance: 10.0
+      multiplier: 1.0
+    - material: 'GOLD_NUGGET'
+      custom-model-data: 0
+      chance: 10.0
+      multiplier: 1.0
+    - material: 'BLAZE_POWDER'
+      custom-model-data: 0
+      chance: 10.0
+      multiplier: 1.0
+    - material: 'CHEST'
+      custom-model-data: 0
+      chance: 10.0
+      multiplier: 1.0
+    - material: 'DIAMOND'
+      custom-model-data: 0
+      chance: 10.0
+      multiplier: 1.0
+    - material: 'REDSTONE'
+      custom-model-data: 0
+      chance: 10.0
+      multiplier: 1.0
+    - material: 'DRAGON_EGG'
+      custom-model-data: 0
+      chance: 2.0
+      multiplier: 10.0
+  jackpot:
+    chance: 0.05
+    boost: 1.0
+    charged-percentage: 10.0
+    message-to:
+      player: true
+      all: true
+      discord: true
+    commands:
+      execute-only-commands: false
+      # ➥ Placeholders: %player_name%, %player_uuid%, %mode%, %bet_price%, %prize%, %bet_price_rounded%, %prize_rounded%
+      commands: []
+    http:
+      # ➥ Placeholders: %player_name%, %player_uuid%, %mode%, %bet_price%, %prize%, %bet_price_rounded%, %prize_rounded%
+      url: ''
+      method: 'POST'
+      headers:
+        Content-Type: "application/json"
+    music: 'jackpot'
+  victory:
+    combinations:
+      - '3x3'
+      - '4x4'
+      - '5x5'
+      - 'horizontal-line'
+      - 'horizontal-line-center'
+      - 'vertical-line'
+      - 'diagonal-line'
+      - 'cross-line'
+    fireworks: true
+    message-to:
+      player: false
+      all: false
+      discord: false
+    commands:
+      execute-only-commands: false
+      # ➥ Placeholders: %player_name%, %player_uuid%, %mode%, %bet_price%, %prize%, %bet_price_rounded%, %prize_rounded%
+      commands: []
+    http:
+      # ➥ Placeholders: %player_name%, %player_uuid%, %mode%, %bet_price%, %prize%, %bet_price_rounded%, %prize_rounded%
+      url: ''
+      method: 'POST'
+      headers:
+        Content-Type: "application/json"
+    music: 'victory'
+  bonus:
+    combinations:
+      - '2x2'
+      - 'little_cross'
+    commands:
+      execute-only-commands: false
+      # ➥ Placeholders: %player_name%, %player_uuid%, %mode%, %bet_price%, %prize%, %bet_price_rounded%, %prize_rounded%
+      commands: []
+    http:
+      # ➥ Placeholders: %player_name%, %player_uuid%, %mode%, %bet_price%, %prize%, %bet_price_rounded%, %prize_rounded%
+      url: ''
+      method: 'POST'
+      headers:
+        Content-Type: "application/json"
+    music: 'bonus'
+  defeat:
+    message-to:
+      player: false
+      all: false
+      discord: false
+    commands:
+      # ➥ Placeholders: %player_name%, %player_uuid%, %mode%, %bet_price%, %bet_price_rounded%
+      commands: []
+    http:
+      # ➥ Placeholders: %player_name%, %player_uuid%, %mode%, %bet_price%, %bet_price_rounded%
+      url: ''
+      method: 'POST'
+      headers:
+        Content-Type: "application/json"
+    music: 'defeat'
+  bet:
+    min-price: 100.0
+    min-items-amount: 1
+    max-price: 999999999.0
+    max-items-amount: 64
+    money-bet:
+      slots: 45
+      material: 'ANVIL'
+      custom-model-data: 0
+      default-bet: 1000.0
+      change-per-click: 1000.0
+      change-per-click-big: 10000.0
+    spot:
+      slots: 20
+      material: 'BARRIER'
+      custom-model-data: 0
+  lever:
+    slots: 11
+    inactive:
+      material: 'LEVER'
+      custom-model-data: 0
+    active:
+      material: 'LEVER'
+      custom-model-data: 0
+    rolling:
+      material: 'LEVER'
+      custom-model-data: 0
+  background:
+    music: 'background_2'
+    music-button:
+      slots: 45
+      material-inactive: '1a906358c730c1ec753f34ccae7c39070b41917a5e235624f47fced715c4b98d'
+      custom-model-data-inactive: 0
+      material-active: '86b1b9de36d25778fbbe6f5b8164c351be35c3711585c4081cc8398b003aa7c2'
+      custom-model-data-active: 0
+    empty-slots: {} # Slot: ['Material', Custom model data]

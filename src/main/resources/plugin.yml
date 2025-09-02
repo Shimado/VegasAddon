@@ -1,0 +1,5 @@
+name: VegasAddon
+version: '@revision@'
+main: org.shimado.addon.VegasAddon
+api-version: 1.13
+depend: [ Vegas ]
