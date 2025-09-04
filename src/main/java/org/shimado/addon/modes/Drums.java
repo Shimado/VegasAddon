@@ -8,6 +8,8 @@ import com.github.Shimado.instances.CasinoBet;
 import com.github.Shimado.instances.CasinoGameMode;
 import com.github.Shimado.interfaces.ISession;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -26,12 +28,14 @@ import org.shimado.basicutils.utils.SoundUtil;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Drums extends CasinoGameMode implements CasinoGameModeMethods, Listener {
 
     private int figuresMaxAmount = 1;
     private List<DrumCombination> combinations = new ArrayList<>();
     private List<RollingItem> rollingItems = new ArrayList<>();
+    private ItemStack victoryPlaceholderItem;
     private final int[][] field = {  //[1][0] = 11    [0][3] = 5
             {2,3,4,5,6},
             {11,12,13,14,15},
@@ -39,6 +43,8 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
             {29,30,31,32,33},
             {38,39,40,41,42}
     };
+    private final int maxRaw = 35;
+    private final int maxCol = 5;
 
     private VegasAddon plugin;
     private IInvHandler invHandler = BasicUtils.getVersionControl().getInvHandler();
@@ -69,6 +75,10 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
         this.rollingItems = rollingItems;
     }
 
+    public void setVictoryPlaceholderItem(ItemStack victoryPlaceholderItem){
+        this.victoryPlaceholderItem = victoryPlaceholderItem;
+    }
+
 
     /**
      * ОСНОВНАЯ МЕХМНИКА
@@ -78,31 +88,256 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
     public void openGame(Player player, Inventory inv){
         GameSession gameSession = new GameSession();
         sessions.put(player.getUniqueId(), gameSession);
-
         refreshInventory(inv, gameSession);
+
+        // Устанавливает первые 5х5 предметов напоказ
         ItemStack[][] board = gameSession.getBoard();
-        for (int raw = 0; raw < 35; raw++) {
+        for (int raw = 0; raw < 5; raw++) {
             for (int col = 0; col < 5; col++) {
                 board[raw][col] = rollingItems.get(NumberUtil.randomInt(0, rollingItems.size())).getRollingItem();
-                if(raw < 5){
-                    inv.setItem(field[raw][col], board[raw][col]);
-                }
+                inv.setItem(field[raw][col], board[raw][col]);
             }
         }
         gameSession.setBoard(board);
     }
 
+
+    /**
+     *
+     * **/
+
     private void refreshInventory(Inventory inv, GameSession gameSession){
         InventoryUtil.setItemToGUI(inv, getLeverSlots(), getLeverItemInactive());
         InventoryUtil.setItemToGUI(inv, getSpotSlots(), getSpotItem());
         gameSession.setBet(new CasinoBet());
+        gameSession.setCycleIndex(0);
+        gameSession.setVictoryCombinations(new ArrayList<>());
+
         ItemStack[][] board = gameSession.getBoard();
-        for (int raw = 5; raw < 35; raw++) {
-            for (int col = 0; col < 5; col++) {
+
+        // Устанавливает слоты прокрутки, которые нужны просто для фона прокрутки
+        for (int raw = 5; raw < maxRaw - 5; raw++) {
+            for (int col = 0; col < maxCol; col++) {
                 board[raw][col] = rollingItems.get(NumberUtil.randomInt(0, rollingItems.size())).getRollingItem();
             }
         }
+
+        // Выбирает комбинации, которые будут показаны
+        List<ResultCombination> combinationsToSet = getCombinationsByChance();
+        gameSession.setVictoryCombinations(combinationsToSet);
+
+        // Если это будет поражение
+        if(combinationsToSet.isEmpty()){
+            setDefeatBoard(board);
+        }
+
+        // Если это будет победа
+        else{
+            setVictoryBoard(board, combinationsToSet);
+        }
+
         gameSession.setBoard(board);
+    }
+
+
+    /**
+     *
+     * **/
+
+    private List<ResultCombination> getCombinationsByChance(){
+        List<ResultCombination> combinationsToSet = new ArrayList<>();
+
+        for (int i = 0; i < figuresMaxAmount; i++) {
+            double chance = NumberUtil.randomDouble(0.0, 100.0);
+            double maxRange = 0.0;
+            double minRange = 0.0;
+
+            for(DrumCombination drumCombination : combinations){
+                maxRange += drumCombination.getChance();
+                if(maxRange <= chance && chance >= minRange){
+                    ResultCombination resultCombination = new ResultCombination();
+                    resultCombination.setDrumCombination(drumCombination);
+
+                    List<Integer> indexes = IntStream.range(0, drumCombination.getCombinations().size()).boxed().toList();
+                    Object index = indexes.get(NumberUtil.randomInt(0, indexes.size()));
+                    indexes.remove(index);
+                    int[][] arrToPlace = drumCombination.getCombinations().get((int) index);
+
+                    boolean notPlace = false;
+                    
+                    while (!indexes.isEmpty() && checkIfCombinationHoverAnother(arrToPlace, combinationsToSet)){
+                        index = indexes.get(NumberUtil.randomInt(0, indexes.size()));
+                        indexes.remove(index);
+                        arrToPlace = drumCombination.getCombinations().get((int) index);
+                        if(indexes.isEmpty()){
+                            notPlace = true;
+                        }
+                    }
+
+                    if(!notPlace){
+                        resultCombination.setCombination(arrToPlace);
+                        combinationsToSet.add(resultCombination);
+                    }
+
+                    break;
+                }
+                minRange = maxRange;
+            }
+        }
+
+        return combinationsToSet;
+    }
+
+
+    /**
+     *
+     * **/
+
+    private boolean checkIfCombinationHoverAnother(int[][] arrToPlace, List<ResultCombination> combinationsToSet){
+        int[][] checkArr = new int[5][5];
+        for(ResultCombination r : combinationsToSet){
+            for (int raw = 0; raw < 5; raw++) {
+                for (int col = 0; col < maxCol; col++) {
+                    if(r.getCombination()[raw][col] == 1){
+                        checkArr[raw][col] = 1;
+                    }
+                }
+            }
+        }
+
+        for (int raw = 0; raw < 5; raw++) {
+            for (int col = 0; col < maxCol; col++) {
+                if(arrToPlace[raw][col] == 1 && checkArr[raw][col] == 0){
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+
+    private boolean isSameMaterials(List<ResultCombination> combinationsToSet){
+        if(combinationsToSet.size() > 1){
+            for (int raw = 0; raw < 5; raw++) {
+                for (int col = 0; col < 5; col++) {
+                    boolean isTrue = false;
+                    for(ResultCombination resultCombination : combinationsToSet){
+                        if(resultCombination.getCombination()[raw][col] == 1){
+                            if(isTrue){
+                                return true;
+                            }else{
+                                isTrue = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+
+    private boolean detectAnotherCombinations(int[][] arr){
+        for(DrumCombination drumCombination : combinations){
+            for(int[][] iArr : drumCombination.getCombinations()){
+                boolean nextCombination = false;
+                for (int raw = 0; raw < 5; raw++) {
+                    if(nextCombination) break;
+                    for (int col = 0; col < maxCol; col++) {
+                        if(iArr[raw][col] != arr[raw][col]){
+                            nextCombination = true;
+                            break;
+                        }
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    private void setDefeatBoard(ItemStack[][] board){
+        Map<ItemStack, int[][]> placedUnUsedItems = new HashMap<>();
+
+        for (int raw = 0; raw < 5; raw++) {
+            for (int col = 0; col < maxCol; col++) {
+                int maxCount = 0;
+                ItemStack itemToPlace = rollingItems.get(NumberUtil.randomInt(0, rollingItems.size())).getRollingItem();
+                int[][] arr = placedUnUsedItems.getOrDefault(itemToPlace, new int[5][5]);
+
+                while (detectAnotherCombinations(arr) && maxCount < 20){
+                    itemToPlace = rollingItems.get(NumberUtil.randomInt(0, rollingItems.size())).getRollingItem();
+                    arr = placedUnUsedItems.getOrDefault(itemToPlace, new int[5][5]);
+                    maxCount++;
+                }
+
+                arr[raw][col] = 1;
+                placedUnUsedItems.put(itemToPlace, arr);
+                board[raw + (maxRaw - 5)][col] = itemToPlace;
+            }
+        }
+    }
+
+
+    private void setVictoryBoard(ItemStack[][] board, List<ResultCombination> combinationsToSet){
+        boolean isSameMaterials = isSameMaterials(combinationsToSet);
+
+        RollingItem commonRollingItem = rollingItems.get(NumberUtil.randomInt(0, rollingItems.size()));
+        List<RollingItem> usedRollingItems = new ArrayList<>();
+        for(ResultCombination resultCombination : combinationsToSet){
+            RollingItem toUse = isSameMaterials ? commonRollingItem : rollingItems.get(NumberUtil.randomInt(0, rollingItems.size()));
+            usedRollingItems.add(toUse);
+            resultCombination.setRollingItem(toUse);
+        }
+
+        int[][] unUsedSlots = new int[5][5];
+        for (int raw = 0; raw < 5; raw++) {
+            for (int col = 0; col < maxCol; col++) {
+                boolean isPlacedByCombination = false;
+                for(ResultCombination resultCombination : combinationsToSet){
+                    if(resultCombination.getCombination()[raw][col] == 1){
+                        board[raw + (maxRaw - 5)][col] = resultCombination.getRollingItem().getRollingItem();
+                        isPlacedByCombination = true;
+                    }
+                }
+                if(!isPlacedByCombination){
+                    unUsedSlots[raw][col] = 1;
+                }
+            }
+        }
+
+        List<RollingItem> unUsedRollingItems = rollingItems.stream().filter(it -> {
+            for(RollingItem usedRollingItem : usedRollingItems){
+                if(usedRollingItem.getRollingItem().equals(it.getRollingItem())){
+                    return false;
+                }
+            }
+            return true;
+        }).collect(Collectors.toList());
+
+        Map<ItemStack, int[][]> placedUnUsedItems = new HashMap<>();
+
+        for (int raw = 0; raw < 5; raw++) {
+            for (int col = 0; col < maxCol; col++) {
+                if(unUsedSlots[raw][col] == 1){
+                    int maxCount = 0;
+                    ItemStack itemToPlace = unUsedRollingItems.get(NumberUtil.randomInt(0, unUsedRollingItems.size())).getRollingItem();
+                    int[][] arr = placedUnUsedItems.getOrDefault(itemToPlace, new int[5][5]);
+
+                    while (detectAnotherCombinations(arr) && maxCount < 20){
+                        itemToPlace = unUsedRollingItems.get(NumberUtil.randomInt(0, unUsedRollingItems.size())).getRollingItem();
+                        arr = placedUnUsedItems.getOrDefault(itemToPlace, new int[5][5]);
+                        maxCount++;
+                    }
+
+                    arr[raw][col] = 1;
+                    placedUnUsedItems.put(itemToPlace, arr);
+                    board[raw + (maxRaw - 5)][col] = itemToPlace;
+                }
+            }
+        }
     }
 
 
@@ -200,64 +435,105 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
                 InventoryUtil.setItemToGUI(inv, getSpotSlots(), getSpotItem());
                 InventoryUtil.setItemToGUI(inv, getLeverSlots(), getLeverItemRolling());
                 SoundUtil.activate(player);
-                start(player, inv, gameSession, invSession.getCasinoTable());
+                start(player, inv, gameSession, invSession);
             }
 
         }
     }
 
 
-    private void start(){
-        List<ResultCombination> combinationsToSet = new ArrayList<>();
-
-        for (int i = 0; i < figuresMaxAmount; i++) {
-            double chance = NumberUtil.randomDouble(0.0, 100.0);
-            double left = 0.0;
-
-            for(DrumCombination drumCombination : combinations){
-                left += drumCombination.getChance();
-                if(left >= chance){
-                    ResultCombination resultCombination = new ResultCombination();
-                    resultCombination.setDrumCombination(drumCombination);
-                    resultCombination.setCombination(drumCombination.getCombinations().get(NumberUtil.randomInt(0, drumCombination.getCombinations().size())));
-                    combinationsToSet.add(resultCombination);
-                    break;
+    private void start(Player player, Inventory inv, GameSession gameSession, ISession session){
+        int cycleID = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
+            int index = gameSession.getCycleIndex();
+            for (int raw = 0; raw < 5; raw++) {
+                for (int col = 0; col < 5; col++) {
+                    inv.setItem(field[raw][col], gameSession.getBoard()[raw + index][col]);
                 }
+            }
+            index++;
+            if(index >= 34){
+                gameSession.cancelCycleID();
+                checkEnd(player, gameSession, session);
+            }
+        }, 0, 5);
+        gameSession.setCycleID(cycleID);
+    }
+
+
+    private void checkEnd(Player player, GameSession gameSession, ISession session){
+        Location tableLoc = session.getCasinoTable() == null ? player.getLocation() : session.getCasinoTable().getLoc();
+        UUID tableOwnerUUID = session.getCasinoTable() == null ? null : session.getCasinoTable().getOwner();
+
+        ItemStack[][] board = gameSession.getBoard();
+
+        // Смена индексов
+        for (int raw = 0; raw < 5; raw++) {
+            for (int col = 0; col < maxCol; col++) {
+                board[raw][col] = board[raw + (maxRaw - 5)][col];
             }
         }
 
-        boolean isSameMaterials = false;
+        // Поражение
+        if(gameSession.getVictoryCombinations().isEmpty()){
+            victoryUtil.defeat(player, gameSession.getBet(), this, tableLoc, tableOwnerUUID);
+            int delayID = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+                gameSession.cancelCycleID();
+                refreshInventory(session.getInv(), gameSession);
+            }, 40);
+            gameSession.setCycleID(delayID);
+        }
+        // Победа
+        else{
+            List<ResultCombination> victoryCombinations = gameSession.getVictoryCombinations();
 
-        if(combinationsToSet.size() > 1){
+            for(ResultCombination resultCombination : victoryCombinations){
+                DrumCombination combination = resultCombination.getDrumCombination();
+                if(!combination.isBonus()){
+                    victoryUtil.victory(player, gameSession.getBet(), this, combination.getMultiplier() * resultCombination.getRollingItem().getMultiplier(), tableLoc, tableOwnerUUID);
+                }else{
+                    victoryUtil.bonus(player, gameSession.getBet(), this, combination.getMultiplier() * resultCombination.getRollingItem().getMultiplier(), tableLoc, tableOwnerUUID);
+                }
+            }
+
             for (int raw = 0; raw < 5; raw++) {
-                for (int col = 0; col < 5; col++) {
-                    boolean isTrue = false;
-                    for(ResultCombination resultCombination : combinationsToSet){
-                        isTrue = resultCombination.getCombination()[raw][col] == 1;
+                for (int col = 0; col < maxCol; col++) {
+                    session.getInv().setItem(field[raw][col], victoryPlaceholderItem);
+                    for(ResultCombination r : victoryCombinations){
+                        if(r.getCombination()[raw][col] == 1){
+                            session.getInv().setItem(field[raw][col], r.getRollingItem().getRollingItem());
+                        }
                     }
                 }
             }
+
+            int delayID = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+                gameSession.cancelCycleID();
+
+                for (int raw = 0; raw < 5; raw++) {
+                    for (int col = 0; col < maxCol; col++) {
+                        session.getInv().setItem(field[raw][col], board[raw][col]);
+                    }
+                }
+
+                refreshInventory(session.getInv(), gameSession);
+            }, 40);
+            gameSession.setCycleID(delayID);
         }
 
-
-
-
     }
-
-
 
 
     @Override
     public void reload(){
-        sessions.forEach((playerUUID, session) -> {
-            CasinoBet bet = session.getBet();
+        sessions.forEach((playerUUID, gameSession) -> {
+            CasinoBet bet = gameSession.getBet();
             Player player = Bukkit.getPlayer(playerUUID);
 
             if(player != null && player.isOnline()){
                 casinoGameModeUtil.refundBet(player, bet);
             }
 
-            session.cancelCycleID();
+            gameSession.cancelCycleID();
         });
         sessions.clear();
     }
@@ -266,9 +542,11 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
     private class GameSession{
 
         private int cycleID = -1;
+        private int cycleIndex = 0;
         private CasinoBet bet;
         private double defaultMoneyBet;
-        private ItemStack[][] board = new ItemStack[35][5];
+        private ItemStack[][] board = new ItemStack[maxRaw][maxCol];
+        private List<ResultCombination> victoryCombinations = new ArrayList<>();
 
 
         public boolean isSessionActive(){
@@ -284,6 +562,15 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
                 Bukkit.getScheduler().cancelTask(cycleID);
                 cycleID = -1;
             }
+        }
+
+
+        public int getCycleIndex(){
+            return cycleIndex;
+        }
+
+        public void setCycleIndex(int cycleIndex){
+            this.cycleIndex = cycleIndex;
         }
 
 
@@ -311,6 +598,15 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
 
         public void setBoard(ItemStack[][] board){
             this.board = board;
+        }
+
+
+        public List<ResultCombination> getVictoryCombinations(){
+            return victoryCombinations;
+        }
+
+        public void setVictoryCombinations(List<ResultCombination> victoryCombinations){
+            this.victoryCombinations = victoryCombinations;
         }
 
     }

@@ -1,11 +1,15 @@
 package org.shimado.addon.configs;
 
 import com.github.Shimado.api.CasinoGameModeRegister;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.inventory.ItemStack;
 import org.shimado.addon.VegasAddon;
 import org.shimado.addon.modes.Drums;
+import org.shimado.basicutils.utils.ColorUtil;
 import org.shimado.basicutils.utils.CreateItemUtil;
+import org.shimado.basicutils.utils.NumberUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -61,50 +65,93 @@ public class MainConfig {
 
     public void loadDrums(){
         try {
-            Map<String, Object> mapConfig = loadDrumsSettings(config);
-            Map<String, Object> mapMessages = loadDrumsSettings(messages);
+            Map<String, Object> mapConfig = loadSettings(config, "Drums-settings");
+            Map<String, Object> mapMessages = loadSettings(messages, "Drums-settings");
             if(mapConfig.isEmpty() || mapMessages.isEmpty()) return;
 
             Drums drums = (Drums) plugin.getCasinoGameModeRegister().getGameModeFromMaps(mapConfig, mapMessages, Drums.class);
+            if(drums == null) return;
 
-            if(mapConfig.containsKey("figures-amount-max")){
-                drums.setFiguresMaxAmount((int) mapConfig.get("figures-amount-max"));
+            int figuresMaxAmount = (int) mapConfig.getOrDefault("figures-amount-max", 1);
+            if(NumberUtil.inRangeInt(figuresMaxAmount, 1, 3)){
+                drums.setFiguresMaxAmount(figuresMaxAmount);
+            }else{
+                Bukkit.getConsoleSender().sendMessage(ColorUtil.getColor("&c[VEGAS] The maximum number of combinations for Drums mode is incorrect! Must be between 1 and 3!"));
+                return;
             }
+
 
             if(mapConfig.containsKey("combinations")){
                 List<Drums.DrumCombination> combinations = new ArrayList<>();
+
                 for(Map.Entry<String, Map<String, Object>> a : ((Map<String, Map<String, Object>>) mapConfig.get("combinations")).entrySet()){
-                    String combinationName = a.getKey();
-                    if(mapConfig.containsKey("victory") && ((Map<String, Object>) mapConfig.get("victory")).containsKey("combinations") && ((List<String>) ((Map<String, Object>) mapConfig.get("victory")).get("combinations")).contains(combinationName)){
-                        combinations.add(new Drums.DrumCombination(
-                                (double) a.getValue().getOrDefault("chance", 0.0),
-                                (double) a.getValue().getOrDefault("multiplier", 0.0),
-                                false,
-                                (List<List<String>>) a.getValue().get("types")
-                        ));
+                    double chance = (double) a.getValue().getOrDefault("chance", 1.0);
+                    double multiplier = (double) a.getValue().getOrDefault("multiplier", 1.0);
+                    List<List<String>> types = (List<List<String>>) a.getValue().get("types");
+
+                    for(List<String> l : types){
+                        if(l.size() != 5 || l.stream().anyMatch(it -> it.length() != 5 || !it.matches("[01]+"))){
+                            Bukkit.getConsoleSender().sendMessage(ColorUtil.getColor("&c[VEGAS] One of the combination variations (type) for Drums mode is specified incorrectly! Contains an incorrect number of characters, or an invalid character!"));
+                            return;
+                        }
                     }
-                    else if(mapConfig.containsKey("bonus") && ((Map<String, Object>) mapConfig.get("bonus")).containsKey("combinations") && ((List<String>) ((Map<String, Object>) mapConfig.get("bonus")).get("combinations")).contains(combinationName)){
-                        combinations.add(new Drums.DrumCombination(
-                                (double) a.getValue().getOrDefault("chance", 0.0),
-                                (double) a.getValue().getOrDefault("multiplier", 0.0),
-                                true,
-                                (List<List<String>>) a.getValue().get("types")
-                        ));
+
+                    if(mapConfig.containsKey("victory") && ((Map<String, Object>) mapConfig.get("victory")).containsKey("combinations") && ((List<String>) ((Map<String, Object>) mapConfig.get("victory")).get("combinations")).contains(a.getKey())){
+                        combinations.add(new Drums.DrumCombination(chance, multiplier, false, types));
+                    }
+                    else if(mapConfig.containsKey("bonus") && ((Map<String, Object>) mapConfig.get("bonus")).containsKey("combinations") && ((List<String>) ((Map<String, Object>) mapConfig.get("bonus")).get("combinations")).contains(a.getKey())){
+                        combinations.add(new Drums.DrumCombination(chance, multiplier, true, types));
                     }
                 }
+
+                if(combinations.isEmpty()) {
+                    Bukkit.getConsoleSender().sendMessage(ColorUtil.getColor("&c[VEGAS] The combination number for the Drums game mode cannot be 0!"));
+                    return;
+                }
+
                 drums.setCombinations(combinations);
+            }else{
+                Bukkit.getConsoleSender().sendMessage(ColorUtil.getColor("&c[VEGAS] The integrity of the Drums game mode config has been compromised! [combinations]"));
+                return;
             }
+
 
             if(mapConfig.containsKey("rolling-items")){
                 List<Drums.RollingItem> rollingItems = new ArrayList<>();
+
                 for(Map<String, Object> a : (List<Map<String, Object>>) mapConfig.get("rolling-items")){
+                    ItemStack item = CreateItemUtil.create(a.get("material"), " ", new ArrayList<>(), false, (int) a.get("custom-model-data"), true);
+                    if(item == null) continue;
                     rollingItems.add(new Drums.RollingItem(
-                            CreateItemUtil.create(a.get("material"), " ", new ArrayList<>(), false, (int) a.get("custom-model-data"), true),
-                            (double) a.getOrDefault("chance", 0.0),
-                            (double) a.getOrDefault("multiplier", 0.0)
+                            item,
+                            (double) a.getOrDefault("chance", 10.0),
+                            (double) a.getOrDefault("multiplier", 1.0)
                     ));
                 }
+
+                if(rollingItems.size() <= 5){
+                    Bukkit.getConsoleSender().sendMessage(ColorUtil.getColor("&c[VEGAS] The number of materials to scroll must be more than 5!"));
+                    return;
+                }
+
                 drums.setRollingItems(rollingItems);
+            }else{
+                Bukkit.getConsoleSender().sendMessage(ColorUtil.getColor("&c[VEGAS] The integrity of the Drums game mode config has been compromised! [rolling-items]"));
+                return;
+            }
+
+            if(mapConfig.containsKey("background")){
+                Map<String, Object> backgroundMap = (Map<String, Object>) mapConfig.get("background");
+                if(backgroundMap.containsKey("victory-placeholder")){
+                    Map<String, Object> placeholderMap = (Map<String, Object>) backgroundMap.get("victory-placeholder");
+                    drums.setVictoryPlaceholderItem(CreateItemUtil.create(placeholderMap.get("material"), " ", new ArrayList<>(), false, (int) placeholderMap.get("custom-model-data"), true));
+                }else{
+                    Bukkit.getConsoleSender().sendMessage(ColorUtil.getColor("&c[VEGAS] The integrity of the Drums game mode config has been compromised! [victory-placeholder]"));
+                    return;
+                }
+            }else{
+                Bukkit.getConsoleSender().sendMessage(ColorUtil.getColor("&c[VEGAS] The integrity of the Drums game mode config has been compromised! [background]"));
+                return;
             }
 
             casinoGameModeRegister.register(drums);
@@ -140,8 +187,8 @@ public class MainConfig {
     }
 
 
-    private static Map<String, Object> loadDrumsSettings(YamlConfiguration config) {
-        ConfigurationSection drumsSection = config.getConfigurationSection("Drums-settings");
+    private static Map<String, Object> loadSettings(YamlConfiguration config, String key) {
+        ConfigurationSection drumsSection = config.getConfigurationSection(key);
         if (drumsSection == null) {
             return Collections.emptyMap();
         }
