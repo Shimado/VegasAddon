@@ -2,9 +2,11 @@ package org.shimado.addon.modes;
 
 import com.github.Shimado.api.CasinoGameModeMethods;
 import com.github.Shimado.api.CasinoGameModeUtil;
+import com.github.Shimado.api.ChipUtil;
 import com.github.Shimado.api.VictoryUtil;
 import com.github.Shimado.instances.CasinoBet;
 import com.github.Shimado.instances.CasinoGameMode;
+import com.github.Shimado.interfaces.ISession;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -15,6 +17,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.shimado.addon.VegasAddon;
 import org.shimado.basicutils.BasicUtils;
+import org.shimado.basicutils.instances.Pair;
 import org.shimado.basicutils.inventory.InventoryUtil;
 import org.shimado.basicutils.nms.IInvHandler;
 import org.shimado.basicutils.utils.NumberUtil;
@@ -29,7 +32,7 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
     private int figuresMaxAmount = 1;
     private List<DrumCombination> combinations = new ArrayList<>();
     private List<RollingItem> rollingItems = new ArrayList<>();
-    private final int[][] field = {
+    private final int[][] field = {  //[1][0] = 11    [0][3] = 5
             {2,3,4,5,6},
             {11,12,13,14,15},
             {20,21,22,23,24},
@@ -40,6 +43,7 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
     private VegasAddon plugin;
     private IInvHandler invHandler = BasicUtils.getVersionControl().getInvHandler();
     private CasinoGameModeUtil casinoGameModeUtil;
+    private ChipUtil chipUtil;
     private VictoryUtil victoryUtil;
     private Map<UUID, GameSession> sessions = new HashMap<>();
 
@@ -47,6 +51,7 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
         super(Drums.class.getSimpleName());
         this.plugin = plugin;
         this.casinoGameModeUtil = plugin.getCasinoGameModeUtil();
+        this.chipUtil = plugin.getChipUtil();
         this.victoryUtil = plugin.getVictoryUtil();
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
@@ -65,11 +70,8 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
     }
 
 
-
-
-
     /**
-     * ОСНОВНОЙ МЕХМНИКА
+     * ОСНОВНАЯ МЕХМНИКА
      * **/
 
     @Override
@@ -98,9 +100,6 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
         for (int raw = 5; raw < 35; raw++) {
             for (int col = 0; col < 5; col++) {
                 board[raw][col] = rollingItems.get(NumberUtil.randomInt(0, rollingItems.size())).getRollingItem();
-                if(raw < 5){
-                    inv.setItem(field[raw][col], board[raw][col]);
-                }
             }
         }
         gameSession.setBoard(board);
@@ -209,13 +208,40 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
 
 
     private void start(){
-        for (int i = 0; i < figuresMaxAmount; i++) {
-            for(DrumCombination drumCombination : combinations){
-                if(drumCombination.getChance()){
+        List<ResultCombination> combinationsToSet = new ArrayList<>();
 
+        for (int i = 0; i < figuresMaxAmount; i++) {
+            double chance = NumberUtil.randomDouble(0.0, 100.0);
+            double left = 0.0;
+
+            for(DrumCombination drumCombination : combinations){
+                left += drumCombination.getChance();
+                if(left >= chance){
+                    ResultCombination resultCombination = new ResultCombination();
+                    resultCombination.setDrumCombination(drumCombination);
+                    resultCombination.setCombination(drumCombination.getCombinations().get(NumberUtil.randomInt(0, drumCombination.getCombinations().size())));
+                    combinationsToSet.add(resultCombination);
+                    break;
                 }
             }
         }
+
+        boolean isSameMaterials = false;
+
+        if(combinationsToSet.size() > 1){
+            for (int raw = 0; raw < 5; raw++) {
+                for (int col = 0; col < 5; col++) {
+                    boolean isTrue = false;
+                    for(ResultCombination resultCombination : combinationsToSet){
+                        isTrue = resultCombination.getCombination()[raw][col] == 1;
+                    }
+                }
+            }
+        }
+
+
+
+
     }
 
 
@@ -354,6 +380,43 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
         public double getMultiplier() {
             return multiplier;
         }
+    }
+
+
+    public static class ResultCombination{
+
+        private DrumCombination drumCombination;
+        private int[][] combination;
+        private RollingItem rollingItem;
+
+
+        public DrumCombination getDrumCombination(){
+            return drumCombination;
+        }
+
+        public void setDrumCombination(DrumCombination drumCombination){
+            this.drumCombination = drumCombination;
+        }
+
+
+        public int[][] getCombination(){
+            return combination;
+        }
+
+        public void setCombination(int[][] combination){
+            this.combination = combination;
+        }
+
+
+        public RollingItem getRollingItem(){
+            return rollingItem;
+        }
+
+        public void setRollingItem(RollingItem rollingItem){
+            this.rollingItem = rollingItem;
+        }
+
+
     }
 
 }

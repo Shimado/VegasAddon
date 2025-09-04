@@ -1,9 +1,7 @@
 package org.shimado.addon;
 
 import com.github.Shimado.VegasAPI;
-import com.github.Shimado.api.CasinoGameModeRegister;
-import com.github.Shimado.api.CasinoGameModeUtil;
-import com.github.Shimado.api.VictoryUtil;
+import com.github.Shimado.api.*;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.shimado.addon.configs.MainConfig;
@@ -16,7 +14,9 @@ public class VegasAddon extends JavaPlugin implements CommandExecutor {
         new BasicUtils(this);
         casinoGameModeRegister = VegasAPI.getCasinoGameModeRegister();
         casinoGameModeUtil = VegasAPI.getCasinoGameModeUtil();
+        chipUtil = VegasAPI.getChipUtil();
         victoryUtil = VegasAPI.getVictoryUtil();
+        invSession = VegasAPI.getInvSession();
         new MainConfig(this);
     }
 
@@ -29,7 +29,9 @@ public class VegasAddon extends JavaPlugin implements CommandExecutor {
 
     private CasinoGameModeRegister casinoGameModeRegister;
     private CasinoGameModeUtil casinoGameModeUtil;
+    private ChipUtil chipUtil;
     private VictoryUtil victoryUtil;
+    private InvSession invSession;
 
 
     public CasinoGameModeRegister getCasinoGameModeRegister(){
@@ -38,7 +40,15 @@ public class VegasAddon extends JavaPlugin implements CommandExecutor {
     public CasinoGameModeUtil getCasinoGameModeUtil(){
         return casinoGameModeUtil;
     }
+    public ChipUtil getChipUtil(){
+        return chipUtil;
+    }
     public VictoryUtil getVictoryUtil(){
         return victoryUtil;
     }
+    public InvSession getInvSession(){
+        return invSession;
+    }
+
+
 }
