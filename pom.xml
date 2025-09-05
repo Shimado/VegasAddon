@@ -85,10 +85,6 @@
             <id>mavenCentral</id>
             <url>https://repo1.maven.org/maven2/</url>
         </repository>
-        <repository>
-            <id>placeholderapi</id>
-            <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
-        </repository>
     </repositories>
 
     <dependencies>
@@ -102,7 +98,7 @@
             <groupId>com.shimado.basicutils</groupId>
             <artifactId>BasicUtils</artifactId>
             <version>1.2.13</version>
-            <!--mvn install:install-file -Dfile=lib/BasicUtils.jar -DgroupId=com.shimado.basicutils -DartifactId=BasicUtils -Dversion=2.5 -Dpackaging=jar-->
+            <!--mvn install:install-file -Dfile=lib/BasicUtils.jar -DgroupId=com.shimado.basicutils -DartifactId=BasicUtils -Dversion=1.2.13 -Dpackaging=jar-->
         </dependency>
         <dependency>
             <groupId>com.github.Shimado</groupId>

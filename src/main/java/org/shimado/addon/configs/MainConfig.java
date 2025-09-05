@@ -18,8 +18,8 @@ import java.util.*;
 
 public class MainConfig {
 
-    private VegasAddon plugin;
-    private CasinoGameModeRegister casinoGameModeRegister;
+    private final VegasAddon plugin;
+    private final CasinoGameModeRegister casinoGameModeRegister;
     private YamlConfiguration config;
     private YamlConfiguration messages;
 
@@ -44,6 +44,7 @@ public class MainConfig {
                 e.printStackTrace();
             }
         }
+
         config = YamlConfiguration.loadConfiguration(configFile);
     }
 
@@ -63,7 +64,7 @@ public class MainConfig {
     }
 
 
-    public void loadDrums(){
+    private void loadDrums(){
         try {
             Map<String, Object> mapConfig = loadSettings(config, "Drums-settings");
             Map<String, Object> mapMessages = loadSettings(messages, "Drums-settings");
@@ -85,7 +86,7 @@ public class MainConfig {
                 List<Drums.DrumCombination> combinations = new ArrayList<>();
 
                 for(Map.Entry<String, Map<String, Object>> a : ((Map<String, Map<String, Object>>) mapConfig.get("combinations")).entrySet()){
-                    double chance = (double) a.getValue().getOrDefault("chance", 1.0);
+                    double chance = (double) a.getValue().getOrDefault("chance", 5.0);
                     double multiplier = (double) a.getValue().getOrDefault("multiplier", 1.0);
                     List<List<String>> types = (List<List<String>>) a.getValue().get("types");
 
@@ -129,8 +130,8 @@ public class MainConfig {
                     ));
                 }
 
-                if(rollingItems.size() <= 5){
-                    Bukkit.getConsoleSender().sendMessage(ColorUtil.getColor("&c[VEGAS] The number of materials to scroll must be more than 5!"));
+                if(rollingItems.size() <= 6){
+                    Bukkit.getConsoleSender().sendMessage(ColorUtil.getColor("&c[VEGAS] The number of materials to scroll must be more than 6!"));
                     return;
                 }
 
@@ -144,7 +145,13 @@ public class MainConfig {
                 Map<String, Object> backgroundMap = (Map<String, Object>) mapConfig.get("background");
                 if(backgroundMap.containsKey("victory-placeholder")){
                     Map<String, Object> placeholderMap = (Map<String, Object>) backgroundMap.get("victory-placeholder");
-                    drums.setVictoryPlaceholderItem(CreateItemUtil.create(placeholderMap.get("material"), " ", new ArrayList<>(), false, (int) placeholderMap.get("custom-model-data"), true));
+                    ItemStack placeholderItem = CreateItemUtil.create(placeholderMap.get("material"), " ", new ArrayList<>(), false, (int) placeholderMap.get("custom-model-data"), true);
+                    if(placeholderItem != null){
+                        drums.setVictoryPlaceholderItem(placeholderItem);
+                    }else{
+                        Bukkit.getConsoleSender().sendMessage(ColorUtil.getColor("&c[VEGAS] There is no victory placeholder item in Drums mode!"));
+                        return;
+                    }
                 }else{
                     Bukkit.getConsoleSender().sendMessage(ColorUtil.getColor("&c[VEGAS] The integrity of the Drums game mode config has been compromised! [victory-placeholder]"));
                     return;
