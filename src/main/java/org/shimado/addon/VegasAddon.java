@@ -11,13 +11,13 @@ public class VegasAddon extends JavaPlugin implements CommandExecutor {
 
     @Override
     public void onEnable() {
-        new BasicUtils(this);
+        new BasicUtils(this);  // Optional. Loads the BasicUtil library. If you don't use it, just don't use this method
         casinoGameModeRegister = VegasAPI.getCasinoGameModeRegister();
         casinoGameModeUtil = VegasAPI.getCasinoGameModeUtil();
         chipUtil = VegasAPI.getChipUtil();
         victoryUtil = VegasAPI.getVictoryUtil();
         invSession = VegasAPI.getInvSession();
-        new MainConfig(this);
+        new MainConfig(this);  // Creates a config and a message config. Loads the game mode itself from the config and registers it in the Vegas plugin memory
     }
 
 
@@ -27,11 +27,11 @@ public class VegasAddon extends JavaPlugin implements CommandExecutor {
     }
 
 
-    private CasinoGameModeRegister casinoGameModeRegister;
-    private CasinoGameModeUtil casinoGameModeUtil;
-    private ChipUtil chipUtil;
-    private VictoryUtil victoryUtil;
-    private InvSession invSession;
+    private CasinoGameModeRegister casinoGameModeRegister;   // Class for registering game mode in Vegas plugin
+    private CasinoGameModeUtil casinoGameModeUtil;           // Optional. A class with some methods to make it easier to implement the methods
+    private ChipUtil chipUtil;                               // Method for getting chips. Needed if you want to get chips, for example for display in game mode
+    private VictoryUtil victoryUtil;                         // Method of handling win/loss/jackpot etc. Processes the event itself, http requests, messages, sounds, commands
+    private InvSession invSession;                           // Needed to get the inventory in which the game is running, information about the table on which the player is playing, the name of the game, etc.
 
 
     public CasinoGameModeRegister getCasinoGameModeRegister(){

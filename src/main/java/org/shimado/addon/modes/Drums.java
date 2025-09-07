@@ -9,7 +9,6 @@ import com.github.Shimado.instances.CasinoGameMode;
 import com.github.Shimado.interfaces.ISession;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -19,7 +18,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.shimado.addon.VegasAddon;
 import org.shimado.basicutils.BasicUtils;
-import org.shimado.basicutils.instances.Pair;
 import org.shimado.basicutils.inventory.InventoryUtil;
 import org.shimado.basicutils.nms.IInvHandler;
 import org.shimado.basicutils.utils.NumberUtil;
@@ -32,19 +30,20 @@ import java.util.stream.IntStream;
 
 public class Drums extends CasinoGameMode implements CasinoGameModeMethods, Listener {
 
-    private int figuresMaxAmount = 1;
-    private List<DrumCombination> combinations = new ArrayList<>();
-    private List<RollingItem> rollingItems = new ArrayList<>();
-    private ItemStack victoryPlaceholderItem;
+    private final int maxRaw = 35;
+    private final int maxCol = 5;
     private final int[][] field = {  //[1][0] = 11    [0][3] = 5
-            {2,3,4,5,6},
+            {2, 3, 4, 5, 6},
             {11,12,13,14,15},
             {20,21,22,23,24},
             {29,30,31,32,33},
             {38,39,40,41,42}
     };
-    private final int maxRaw = 35;
-    private final int maxCol = 5;
+
+    private int figuresMaxAmount = 1;
+    private List<DrumCombination> possibleCombinations = new ArrayList<>();
+    private List<RollingItem> possibleRollingItems = new ArrayList<>();
+    private ItemStack victoryPlaceholderItem;
 
     private final VegasAddon plugin;
     private final IInvHandler invHandler = BasicUtils.getVersionControl().getInvHandler();
@@ -67,12 +66,12 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
         this.figuresMaxAmount = figuresMaxAmount;
     }
 
-    public void setCombinations(List<DrumCombination> combinations){
-        this.combinations = combinations;
+    public void setCombinations(List<DrumCombination> possibleCombinations){
+        this.possibleCombinations = possibleCombinations;
     }
 
-    public void setRollingItems(List<RollingItem> rollingItems){
-        this.rollingItems = rollingItems;
+    public void setRollingItems(List<RollingItem> possibleRollingItems){
+        this.possibleRollingItems = possibleRollingItems;
     }
 
     public void setVictoryPlaceholderItem(ItemStack victoryPlaceholderItem){
@@ -81,7 +80,9 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
 
 
     /**
-     * ОСНОВНАЯ МЕХМНИКА
+     * Method for opening GUI.
+     * The Vegas plugin itself implements the installation of standard background items.
+     * Here, the inventory update and installation of items in it are implemented.
      * **/
 
     @Override
@@ -90,11 +91,11 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
         sessions.put(player.getUniqueId(), gameSession);
         refreshInventory(inv, gameSession);
 
-        // Устанавливает первые 5х5 предметов напоказ
+        // Sets the first 5x5 items on display. 0-5
         ItemStack[][] board = gameSession.getBoard();
         for (int raw = 0; raw < 5; raw++) {
             for (int col = 0; col < 5; col++) {
-                board[raw][col] = rollingItems.get(NumberUtil.randomInt(0, rollingItems.size())).getRollingItem();
+                board[raw][col] = possibleRollingItems.get(NumberUtil.randomInt(0, possibleRollingItems.size())).getRollingItem();
                 inv.setItem(field[raw][col], board[raw][col]);
             }
         }
@@ -103,7 +104,9 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
 
 
     /**
-     *
+     * We update the inventory, set inactive levers (when the bet is not yet set).
+     * Resets the game session data for this mode.
+     * Sets up slots 5 to the final row. This is where winning combinations are determined.
      * **/
 
     private void refreshInventory(Inventory inv, GameSession gameSession){
@@ -115,23 +118,23 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
 
         ItemStack[][] board = gameSession.getBoard();
 
-        // Устанавливает слоты прокрутки, которые нужны просто для фона прокрутки
+        // Sets the scroll slots that are just for the scroll background. 5 - (maxRow - 5)
         for (int raw = 5; raw < maxRaw - 5; raw++) {
             for (int col = 0; col < maxCol; col++) {
-                board[raw][col] = rollingItems.get(NumberUtil.randomInt(0, rollingItems.size())).getRollingItem();
+                board[raw][col] = possibleRollingItems.get(NumberUtil.randomInt(0, possibleRollingItems.size())).getRollingItem();
             }
         }
 
-        // Выбирает комбинации, которые будут показаны
+        // Selects the combinations to be shown
         List<ResultCombination> combinationsToSet = getCombinationsByChance();
         gameSession.setVictoryCombinations(combinationsToSet);
 
-        // Если это будет поражение
+        // If it will be a defeat
         if(combinationsToSet.isEmpty()){
             setDefeatBoard(board);
         }
 
-        // Если это будет победа
+        // If this is a victory
         else{
             setVictoryBoard(board, combinationsToSet);
         }
@@ -141,7 +144,8 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
 
 
     /**
-     *
+     * Gets a list of combinations that will be counted as a win or a bonus.
+     * The list may be empty if the combination did not fall out.
      * **/
 
     private List<ResultCombination> getCombinationsByChance(){
@@ -152,7 +156,7 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
             double maxRange = 0.0;
             double minRange = 0.0;
 
-            for(DrumCombination drumCombination : combinations){
+            for(DrumCombination drumCombination : possibleCombinations){
                 maxRange += drumCombination.getChance();
                 if(maxRange >= chance && chance >= minRange){
 
@@ -182,7 +186,9 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
 
 
     /**
-     *
+     * Checks that the combination is not completely its active blocks in other combinations.
+     * That is, if you have a double diagonal, then a regular diagonal can no longer fall out.
+     * If the combination is 5 by 5, then any other combination cannot fall out.
      * **/
 
     private boolean checkIfCombinationHoverAnother(int[][] arrToPlace, List<ResultCombination> combinationsToSet){
@@ -210,12 +216,13 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
 
 
     /**
-     *
+     * If there are no winning combinations, it sets a losing field.
+     * A check is made to make sure that none of the winning combinations are built.
      * **/
 
     private void setDefeatBoard(ItemStack[][] board){
         Map<ItemStack, int[][]> placedUnUsedItems = new HashMap<>();
-        List<ItemStack> items = rollingItems.stream().map(it -> it.getRollingItem()).collect(Collectors.toList());
+        List<ItemStack> items = possibleRollingItems.stream().map(it -> it.getRollingItem()).collect(Collectors.toList());
 
         for (int raw = 0; raw < 5; raw++) {
             for (int col = 0; col < maxCol; col++) {
@@ -240,11 +247,11 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
 
 
     /**
-     *
+     * Finds another combination of active points in a given array.
      * **/
 
     private boolean detectAnotherCombinations(int[][] arr){
-        for(DrumCombination drumCombination : combinations){
+        for(DrumCombination drumCombination : possibleCombinations){
             for(int[][] iArr : drumCombination.getCombinations()){
                 boolean nextCombination = false;
                 for (int raw = 0; raw < 5; raw++) {
@@ -270,7 +277,7 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
     private void setVictoryBoard(ItemStack[][] board, List<ResultCombination> combinationsToSet){
         boolean isSameMaterials = isSameMaterials(combinationsToSet);
 
-        // Выбирает материал для установки
+        // Selects the material for installation
         RollingItem commonRollingItem = getRollingItemByChance();
         List<RollingItem> usedRollingItems = new ArrayList<>();
 
@@ -280,14 +287,14 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
             resultCombination.setRollingItem(toUse);
         }
 
-        // Выбирает слоты, которые нужно заполнить фоном + устанавливает сами комбинации
+        // Selects the slots to be filled with background + sets the combinations themselves
         int[][] unUsedSlots = new int[5][5];
         for (int raw = 0; raw < 5; raw++) {
             for (int col = 0; col < maxCol; col++) {
                 boolean isPlacedByCombination = false;
                 for(ResultCombination resultCombination : combinationsToSet){
                     if(resultCombination.getCombination()[raw][col] == 1){
-                        board[raw + (maxRaw - 5)][col] = resultCombination.getRollingItem().getRollingItem(); // Здесь устанавливает выигрышную комбинацию
+                        board[raw + (maxRaw - 5)][col] = resultCombination.getRollingItem().getRollingItem(); // Here sets the winning combination
                         isPlacedByCombination = true;
                         break;
                     }
@@ -298,7 +305,8 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
             }
         }
 
-        List<RollingItem> unUsedRollingItems = rollingItems.stream().filter(it -> {
+        // List of items that can be used to fill the background
+        List<RollingItem> unUsedRollingItems = possibleRollingItems.stream().filter(it -> {
             for(RollingItem usedRollingItem : usedRollingItems){
                 if(usedRollingItem.getRollingItem().equals(it.getRollingItem())){
                     return false;
@@ -307,7 +315,7 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
             return true;
         }).collect(Collectors.toList());
 
-
+        // Setting up inactive background objects. Setting up active ones is done a little higher
         Map<ItemStack, int[][]> placedUnUsedItems = new HashMap<>();
 
         for (int raw = 0; raw < 5; raw++) {
@@ -335,7 +343,8 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
 
 
     /**
-     *
+     * If suddenly active combinations intersect, then they must be of the same material.
+     * If not, then they can be different, or the same.
      * **/
 
     private boolean isSameMaterials(List<ResultCombination> combinationsToSet){
@@ -360,16 +369,16 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
 
 
     /**
-     *
+     * Receives an item for a winning combination.
      * **/
 
     private RollingItem getRollingItemByChance(){
-        double totalSum = rollingItems.stream().mapToDouble(RollingItem::getChance).sum();
+        double totalSum = possibleRollingItems.stream().mapToDouble(RollingItem::getChance).sum();
         double chance = NumberUtil.randomDouble(0.0, totalSum);
         double minRange = 0.0;
         double maxRange = 0.0;
 
-        for(RollingItem rollingItem : rollingItems){
+        for(RollingItem rollingItem : possibleRollingItems){
             maxRange += rollingItem.getChance();
             if(maxRange >= chance && chance >= minRange){
                 return rollingItem;
@@ -377,10 +386,16 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
             minRange = maxRange;
         }
 
-        return rollingItems.get(NumberUtil.randomInt(0, rollingItems.size()));
+        return possibleRollingItems.get(NumberUtil.randomInt(0, possibleRollingItems.size()));
     }
 
 
+    /**
+     * Event that handles closing of the game GUI.
+     * Checks if this is a game GUI by the title. And the method implements
+     * the return of the token if the game has not yet started.
+     * Removes the player from the session list.
+     * **/
 
     @Override
     @EventHandler
@@ -390,7 +405,7 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
             GameSession gameSession = sessions.get(player.getUniqueId());
             if(gameSession == null) return;
 
-            // Возврат ставки
+            // Refund of the bet
             if(!gameSession.isSessionActive() && gameSession.getBet() != null){
                 casinoGameModeUtil.refundBet(player, gameSession.getBet());
             }
@@ -400,6 +415,12 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
         }
     }
 
+
+    /**
+     * Handles clicking in the GUI.
+     * The Vegas plugin itself handles music inclusion/selection if you have the BoomBox plugin on the server.
+     * This is where bets are processed, the game is launched, and various checks are performed.
+     * **/
 
     @Override
     @EventHandler
@@ -421,16 +442,16 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
             ItemStack itemOnCursor = e.getCursor();
             CasinoBet bet = gameSession.getBet();
 
-            // Если игрока уже идет
+            // If the player is already walking
             if(gameSession.isSessionActive() || inv.getItem(slot) == null) return;
 
-            // СИСТЕМА БИЗНЕСА
+            // Optional. Checking if the table owner has the money to pay out in case of a win
             if(invSession.getCasinoTable() != null && !casinoGameModeUtil.checkIfBusinessTableHasMoney(player, invSession.getCasinoTable().getOwner())) return;
 
-            // Ставки
+            // Bets
             if(getSpotSlots().contains(slot)){
 
-                // Новая ставка
+                // New rate
                 if(e.isLeftClick()){
                     casinoGameModeUtil.placeBet(player, bet, itemOnCursor, gameSession.getDefaultMoneyBet(), this,
                             () -> {
@@ -451,7 +472,7 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
                     );
                 }
 
-                // Возврат ставки
+                // Refund of the bet
                 else if(e.isRightClick() && bet.isAnyBet()){
                     casinoGameModeUtil.refundBet(player, bet);
                     InventoryUtil.setItemToGUI(inv, getSpotSlots(), getSpotItem());
@@ -460,7 +481,7 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
                 }
             }
 
-            // Запуск игры
+            // Launching the game
             else if(getLeverSlots().contains(slot) && inv.getItem(slot) != null && bet.isAnyBet()){
                 InventoryUtil.setItemToGUI(inv, getSpotSlots(), getSpotItem());
                 InventoryUtil.setItemToGUI(inv, getLeverSlots(), getLeverItemRolling());
@@ -473,7 +494,8 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
 
 
     /**
-     *
+     * Starts a rotation cycle of the specified objects and after
+     * reaching the maximum line stops the cycle and processes the result.
      * **/
 
     private void start(Player player, Inventory inv, GameSession gameSession, ISession invSession){
@@ -485,7 +507,7 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
                 }
             }
             index++;
-            if(index >= 35){
+            if(index >= maxRaw){
                 gameSession.cancelCycleID();
                 checkEnd(player, gameSession, invSession);
             }
@@ -494,20 +516,24 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
     }
 
 
+    /**
+     * Processes victory and defeat and after all, with a small delay, updates the GUI
+     * **/
+
     private void checkEnd(Player player, GameSession gameSession, ISession invSession){
         Location tableLoc = invSession.getCasinoTable() == null ? player.getLocation() : invSession.getCasinoTable().getLoc();
         UUID tableOwnerUUID = invSession.getCasinoTable() == null ? null : invSession.getCasinoTable().getOwner();
 
         ItemStack[][] board = gameSession.getBoard();
 
-        // Смена индексов
+        // Index change. Last (maxRow - 5) - maxRow items become first 0 - 5
         for (int raw = 0; raw < 5; raw++) {
             for (int col = 0; col < maxCol; col++) {
                 board[raw][col] = board[raw + (maxRaw - 5)][col];
             }
         }
 
-        // Поражение
+        // Defeat
         if(gameSession.getVictoryCombinations().isEmpty()){
             victoryUtil.defeat(player, gameSession.getBet(), this, tableLoc, tableOwnerUUID);
             int delayID = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
@@ -517,7 +543,7 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
             gameSession.setCycleID(delayID);
         }
 
-        // Победа
+        // Victory
         else{
             List<ResultCombination> victoryCombinations = gameSession.getVictoryCombinations();
 
@@ -558,6 +584,11 @@ public class Drums extends CasinoGameMode implements CasinoGameModeMethods, List
 
     }
 
+
+    /**
+     * Necessary for the Vegas plugin, to update data.
+     * In this case, it is needed to return chips and clear the session.
+     * **/
 
     @Override
     public void reload(){

@@ -11,6 +11,7 @@ import org.shimado.basicutils.utils.ColorUtil;
 import org.shimado.basicutils.utils.CreateItemUtil;
 import org.shimado.basicutils.utils.NumberUtil;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,6 +30,10 @@ public class MainConfig {
         reload();
     }
 
+
+    /**
+     * Creates config.yml file from the /resources/config.yml
+     * **/
 
     private void initConfig() {
         File configFile = new File(plugin.getDataFolder(), "config.yml");
@@ -49,6 +54,10 @@ public class MainConfig {
     }
 
 
+    /**
+     * Creates en.yml file from the /resources/en.yml
+     * **/
+
     private void initMessageConfig() {
         File messagesFile = new File(plugin.getDataFolder(), "en.yml");
 
@@ -63,6 +72,11 @@ public class MainConfig {
         messages = YamlConfiguration.loadConfiguration(messagesFile);
     }
 
+
+    /**
+     * Loads all data from the config, checks them for correctness and then registers them in the Vegas plugin as a mode.
+     * The standard config fields are checked in the Vegas plugin itself, there is no need to check them here!
+     */
 
     private void loadDrums(){
         try {
@@ -169,6 +183,30 @@ public class MainConfig {
     }
 
 
+    /**
+     * Gets config data by key as a non-flat map. If the field is missing, it returns an empty map.
+     *
+     * @param config - config or messages config instance
+     * @param key - config or messages config key value. In this addon its "Drums-settings"
+     * @return map with all keys - values or empty map
+     */
+
+    @Nonnull
+    private static Map<String, Object> loadSettings(YamlConfiguration config, String key) {
+        ConfigurationSection drumsSection = config.getConfigurationSection(key);
+        if (drumsSection == null) {
+            return Collections.emptyMap();
+        }
+        return toMap(drumsSection);
+    }
+
+
+    /**
+     * Converts the section into a ready-made non-flat map of all config fields,
+     * which can then be used to obtain data and specify it for the mode.
+     */
+
+    @Nonnull
     private static Map<String, Object> toMap(ConfigurationSection section) {
         Map<String, Object> map = new LinkedHashMap<>();
         for (String key : section.getKeys(false)) {
@@ -194,14 +232,9 @@ public class MainConfig {
     }
 
 
-    private static Map<String, Object> loadSettings(YamlConfiguration config, String key) {
-        ConfigurationSection drumsSection = config.getConfigurationSection(key);
-        if (drumsSection == null) {
-            return Collections.emptyMap();
-        }
-        return toMap(drumsSection);
-    }
-
+    /**
+     * Loads/reloads configs, then loads game mode.
+     */
 
     public void reload() {
         initConfig();
